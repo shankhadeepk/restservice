@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+       <!-- For assistance related to logback-translator or configuration -->
+       <!-- files in general, please contact the logback user mailing list -->
+       <!-- at http://www.qos.ch/mailman/listinfo/logback-user -->
+       <!-- -->
+       <!-- For professional support please see -->
+       <!-- http://www.qos.ch/shop/products/professionalSupport -->
+       <!-- -->
+       <property name="LOG_FILE" value="/home/hans/shan-home/logs" />
+ 
+       <appender name="FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+              <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                     <level>DEBUG</level>
+              </filter>
+              <encoder>
+                     <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} -
+                           %X{TransId} - %msg%n</pattern>
+              </encoder>
+              <file>${LOG_FILE}/employeeApp.log</file>
+              <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                     <!-- rollover daily -->
+                     <fileNamePattern>${LOG_FILE}/archived/employeeApp.%d{yyyy-MM-dd}.%i.log
+                     </fileNamePattern>
+                     <timeBasedFileNamingAndTriggeringPolicy
+                           class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                           <maxFileSize>10MB</maxFileSize>
+                           <!-- keep 14 days' worth of history commented <maxHistory>14</maxHistory> -->
+                     </timeBasedFileNamingAndTriggeringPolicy>
+              </rollingPolicy>
+       </appender>
+       <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+              <layout class="ch.qos.logback.classic.PatternLayout">
+                     <Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} -
+                           %X{TransId} - %msg%n
+                     </Pattern>
+              </layout>
+       </appender>
+       <appender name="asyncTasLogKafka"
+              class="net.logstash.logback.appender.LoggingEventAsyncDisruptorAppender">
+              <appender name="kafkaVerboseAppender"
+                     class="com.github.danielwegener.logback.kafka.KafkaAppender">
+                     <encoder
+                            class="com.github.danielwegener.logback.kafka.encoding.LayoutKafkaMessageEncoder">
+                           <layout class="ch.qos.logback.classic.PatternLayout">
+                                  <pattern>tas_logs-%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} -
+                           %X{TransId} - %msg%n</pattern>
+                           </layout>
+                     </encoder>
+                     <topic>tas_logs</topic>
+                     <keyingStrategy
+                            class="com.github.danielwegener.logback.kafka.keying.RoundRobinKeyingStrategy" />
+                     <deliveryStrategy
+                            class="com.github.danielwegener.logback.kafka.delivery.AsynchronousDeliveryStrategy" />
+                     <producerConfig>bootstrap.servers=localhost:9092</producerConfig>
+                     <producerConfig>retries=2</producerConfig>
+              </appender>
+              <appender-ref ref="STDOUT"/>
+       </appender> 
+ 
+       <logger name="org.springframework" level="INFO" additivity="false">
+              <appender-ref ref="FILE" />
+              <appender-ref ref="STDOUT" />		              
+       </logger>
+       <logger name="com.ind" level="INFO" additivity="false">
+              <appender-ref ref="FILE" />
+              <appender-ref ref="STDOUT" />
+              <appender-ref ref="asyncTasLogKafka" />
+       </logger>
+       <root level="INFO">
+              <appender-ref ref="STDOUT" />
+              <appender-ref ref="FILE" />
+              <appender-ref ref="asyncTasLogKafka" />
+       </root>
+ 
+</configuration>
